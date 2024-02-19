@@ -1,1 +1,1 @@
-/Users/lucianghinea/Projects/Personal/web-server-rust/target/debug/web-server-rust: /Users/lucianghinea/Projects/Personal/web-server-rust/src/main.rs
+/Users/lucianghinea/Projects/Personal/web-server-rust/target/debug/web-server-rust: /Users/lucianghinea/Projects/Personal/web-server-rust/src/http/mod.rs /Users/lucianghinea/Projects/Personal/web-server-rust/src/http/request.rs /Users/lucianghinea/Projects/Personal/web-server-rust/src/main.rs
