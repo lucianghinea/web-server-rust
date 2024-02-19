@@ -1,62 +1,8 @@
 use std::collections::HashMap;
 use tokio::io::AsyncReadExt;
+use crate::{Error, Method, Version};
 
 type RequestParseResult = Result<Request, Error>;
-
-pub enum Error {
-    ParsingError,
-    UTF8Error(std::string::FromUtf8Error),
-    IOError(std::io::Error)
-}
-
-#[derive(Debug)]
-pub enum Method {
-    GET,
-    POST,
-    PUT,
-    PATCH,
-    OPTION,
-    DELETE
-}
-
-#[derive(Debug)]
-pub enum Version {
-    HTTP1_1,
-}
-
-impl From<std::io::Error> for Error {
-    fn from(internal_err: std::io::Error) -> Self {
-        Error::IOError(internal_err)
-    }
-}
-
-impl From<std::string::FromUtf8Error> for Error {
-    fn from(internal_err: std::string::FromUtf8Error) -> Self {
-        Error::UTF8Error(internal_err)
-    }
-}
-
-impl  From<&str> for Method {
-    fn from(s: &str) -> Self {
-        if s == "GET" {
-            Method::GET
-        } else if s == "POST" {
-            Method::POST
-        } else {
-            Method::GET
-        }
-    }
-}
-
-impl  From<&str> for Version {
-    fn from(s: &str) -> Self {
-        if s == "HTTP/1.1" {
-            Version::HTTP1_1
-        } else {
-            Version::HTTP1_1 
-        }
-    }
-}
 
 pub struct Request {
     pub method: Method,
@@ -67,38 +13,18 @@ pub struct Request {
     pub path_params: HashMap<String, String>,
 }
 
-pub struct Connection {
-    pub request: Request,
-    pub socket: tokio::net::TcpStream
-}
-
-impl Connection {
-    pub async fn new(mut socket: tokio::net::TcpStream) -> Result<Connection, Error> {
-        let request = Request::new(&mut socket).await?;
-        Ok(Connection {
-            request, socket
-        })
-    }
-
-    pub fn respond(&self, status: usize, body: &str) -> Result<(), Error> {
-        Ok(())
-        // self.socket.write_all(body)
-    }
-}
-
 impl Request {
     pub async fn new(reader: &mut tokio::net::TcpStream) -> RequestParseResult {
         let mut first_line: String = String::new();
         let mut headers: HashMap<String, String> = HashMap::new();
         let mut buffer: Vec<u8> = std::vec::Vec::new();
-        let mut lines: Vec<String> = std::vec::Vec::new();
+
         loop {
             let b = reader.read_u8().await?;
             buffer.push(b);
             if b as char == '\n' {
                 if first_line.is_empty() {
                     first_line = String::from_utf8(buffer[0..buffer.len() - 2].to_vec())?;
-                    println!("first line is: {:?}", first_line);
                     buffer.clear();
                 } else {
                     if buffer.len() == 2 && buffer[0] as char == '\r' {
@@ -113,7 +39,13 @@ impl Request {
                     };
 
                     let value = match iter.next() {
-                        Some(v) => v,
+                        Some(v) => {
+                            if v.chars().nth(0) == Some(' ') {
+                                String::from(v)[1..].to_string()
+                            } else {
+                                v.to_string()
+                            }
+                        }
                         None => return  Err(Error::ParsingError),
                     };
 
@@ -140,7 +72,7 @@ impl Request {
                     };
 
                     let value = match iter.next() {
-                        Some(v) => v,
+                        Some(k) => k,
                         None => return  Err(Error::ParsingError),
                     };
                     query_params.insert(key.to_string(), value.to_string());

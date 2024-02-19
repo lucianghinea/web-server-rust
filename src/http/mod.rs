@@ -1,2 +1,12 @@
 mod request;
+mod response;
+mod connection;
+mod errors;
+mod methods;
+mod versions;
 pub use request::*;
+pub use response::*;
+pub use connection::*;
+pub use errors::*;
+pub use methods::*;
+pub use versions::*;
